@@ -317,6 +317,11 @@ const styles = StyleSheet.create({
 
   menuButton: { backgroundColor: '#4371A7', paddingVertical: 5, paddingHorizontal: 15, borderRadius: 5, marginTop: 5 },
   menuButtonText: { color: 'white', fontWeight: 'bold' },
+  restaurantInfo: {
+    flexDirection: 'column', // Ensures text is aligned properly
+    alignItems: 'center',
+    marginTop: 5,
+  },
 });
 
 export default HomeScreen;
