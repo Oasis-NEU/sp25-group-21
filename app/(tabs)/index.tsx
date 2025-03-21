@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { Keyboard } from 'react-native';
 import {
   Image,
   ScrollView,
@@ -61,6 +62,11 @@ const HomeScreen = () => {
   const navigation = useNavigation();
   const [error, setError] = useState("");
   const [stores, setStores] = useState<any[]>([]); 
+  const [filteredRestaurants, setFilteredRestaurants] = useState<
+  { id: string; name: string; image: string }[]
+>([]);
+const [searchQuery, setSearchQuery] = useState('');
+  
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -69,6 +75,22 @@ const HomeScreen = () => {
   useEffect(()=>{
     GetStores();
   },[])
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query); 
+  
+    if (!query.trim()) {
+      setFilteredRestaurants([]); 
+      return;
+    }
+  
+    const foundRestaurants = restaurantCategories
+      .flatMap(category => category.restaurants) 
+      .filter(restaurant => restaurant.name.toLowerCase().includes(query.toLowerCase()));
+  
+    setFilteredRestaurants(foundRestaurants);
+    Keyboard.dismiss(); 
+  };
 
   async function GetStores (){
     const { data, error} = await supabase.from('store').select('*');
@@ -83,6 +105,7 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="auto" />
+
       {/* Header */}
       <View style={styles.header}>
         <Image style={styles.profileImage} source={{ uri: 'https://via.placeholder.com/56' }} />
@@ -99,36 +122,62 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color="gray" />
-          <TextInput placeholder="Restaurants and cuisines" keyboardType="default" style={styles.searchInput} />
+          <TextInput
+            placeholder="Search for a restaurant"
+            keyboardType="default"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={(event) => handleSearch(event.nativeEvent.text)}
+            returnKeyType="search"
+          />
         </View>
         <TouchableOpacity>
           <Ionicons name="filter" size={24} color="#4371A7" />
         </TouchableOpacity>
       </View>
 
-      {/* Body */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Categories />
-
-        {/* Restaurant Rows with Images */}
-        {restaurantCategories.map((category) => (
-          <View key={category.id} style={styles.featuredRowContainer}>
-            {/* Category Image */}
+      {/* FlatList - Main Content */}
+      <FlatList
+        ListHeaderComponent={
+          <>
+            <Categories />
+            {searchQuery && (
+              <>
+                <Text style={styles.searchTitle}>Search Results:</Text>
+                {filteredRestaurants.length > 0 ? (
+                  <FlatList
+                    data={filteredRestaurants}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <View style={styles.restaurantCard}>
+                        <Image source={{ uri: item.image }} style={styles.restaurantImage} />
+                        <Text style={styles.restaurantName}>{item.name}</Text>
+                      </View>
+                    )}
+                  />
+                ) : (
+                  <Text style={styles.noResults}>No restaurants found</Text>
+                )}
+              </>
+            )}
+          </>
+        }
+        data={restaurantCategories}
+        keyExtractor={(category) => category.id}
+        renderItem={({ item: category }) => (
+          <View style={styles.featuredRowContainer}>
             <Image source={{ uri: category.image }} style={styles.categoryImage} />
-
-            {/* Title & Arrow */}
             <View style={styles.rowHeader}>
               <Text style={styles.rowTitle}>{category.title}</Text>
               <TouchableOpacity>
                 <Ionicons name="arrow-forward" size={24} color="#4371A7" />
               </TouchableOpacity>
             </View>
-
-            {/* Restaurants */}
             <FlatList
               data={category.restaurants}
               horizontal
@@ -142,10 +191,8 @@ const HomeScreen = () => {
               )}
             />
           </View>
-        ))}
-
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+        )}
+      />
     </SafeAreaView>
   );
 };
@@ -250,6 +297,20 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+
+  searchTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    paddingHorizontal: 16,
+  },
+  noResults: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    color: 'gray',
   },
 });
 
