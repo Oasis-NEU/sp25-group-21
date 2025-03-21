@@ -312,6 +312,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: 'gray',
   },
+
+  menuButton: { backgroundColor: '#4371A7', paddingVertical: 5, paddingHorizontal: 15, borderRadius: 5, marginTop: 5 },
+  menuButtonText: { color: 'white', fontWeight: 'bold' },
 });
 
 export default HomeScreen;
