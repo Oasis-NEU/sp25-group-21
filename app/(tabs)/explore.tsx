@@ -12,7 +12,7 @@ import Swiper from "react-native-deck-swiper";
 
 const { width, height } = Dimensions.get("window");
 
-// Food Categories for Filtering
+// Food Categories for Filtering (Smaller, Pill-Shaped)
 const categories = ["Fast Food", "Italian", "Mexican", "Burgers", "Chinese", "Pizza", "Desserts"];
 
 // Updated Food Data with Correct Image URLs
@@ -20,31 +20,31 @@ const foodItems = [
   {
     id: "1",
     name: "Cheeseburger",
-    image: "https://www.recipetineats.com/wp-content/uploads/2022/08/Stack-of-cheeseburgers.jpg", 
+    image: "https://source.unsplash.com/400x400/?cheeseburger", 
     category: "Burgers",
   },
   {
     id: "2",
     name: "Margherita Pizza",
-    image: "https://www.inspiredtaste.net/wp-content/uploads/2023/08/Cheese-Pizza-2-1200.jpg",
+    image: "https://source.unsplash.com/400x400/?pizza",
     category: "Pizza",
   },
   {
     id: "3",
     name: "Tacos",
-    image: "https://www.thecookierookie.com/wp-content/uploads/2024/05/street-tacos-recipe-2.jpg",
+    image: "https://source.unsplash.com/400x400/?tacos",
     category: "Mexican",
   },
   {
     id: "4",
     name: "Pasta Alfredo",
-    image: "https://www.vanillabeancuisine.com/wp-content/uploads/2023/12/Spaghetti-Alfredo-FEAT-IMAGE.jpg",
+    image: "https://source.unsplash.com/400x400/?pasta",
     category: "Italian",
   },
   {
     id: "5",
     name: "French Fries",
-    image: "https://images.themodernproper.com/production/posts/2022/Homemade-French-Fries_8.jpg?w=1200&h=1200&q=60&fm=jpg",
+    image: "https://source.unsplash.com/400x400/?fries",
     category: "Fast Food",
   },
 ];
@@ -155,7 +155,7 @@ const ExplorePage: React.FC = () => {
   );
 };
 
-// Updated Styles (Smaller Tags)
+// Updated Styles (Pill-Shaped Buttons & Tags)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -168,10 +168,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   categoryButton: {
-    marginHorizontal: 4,
+    marginHorizontal: 5,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 10,
+    paddingHorizontal: 12, // Shorter, pill-like width
+    borderRadius: 50, // Makes it pill-shaped
     borderWidth: 1,
     borderColor: "#000",
   },
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   categoryText: {
-    fontSize: 10, // Smaller text
+    fontSize: 10, // Small text
     color: "#000",
   },
   selectedCategoryText: {
@@ -221,9 +221,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   button: {
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingVertical: 4,  // Smaller vertical size
+    paddingHorizontal: 20, // Wide and pill-like
+    borderRadius: 50, // Pill shape
   },
   buttonText: {
     color: "#fff",
