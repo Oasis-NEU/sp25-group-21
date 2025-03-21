@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import React, { useLayoutEffect } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import {supabase} from '../../supabaseClient';
+import { Keyboard } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Image,
   ScrollView,
@@ -14,8 +15,8 @@ import {
   StyleSheet,
   FlatList,
 } from 'react-native';
-
 import Categories from '../components/Categories';
+import {supabase} from '../../supabaseClient';
 
 // Dummy restaurant categories with images
 const restaurantCategories = [
@@ -57,16 +58,58 @@ const restaurantCategories = [
   },
 ];
 
-const HomeScreen = () => {
-  const navigation = useNavigation();
+type RootStackParamList = {
+  Home: undefined;
+  Restaurant: { restaurant: { id: string; name: string; image: string } };
+};
 
-  useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, []);
+// ✅ Define the navigation type
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+ 
+const HomeScreen: React.FC = () => {
+  const [error, setError] = useState("");
+  const [stores, setStores] = useState<any[]>([]); 
+  const [filteredRestaurants, setFilteredRestaurants] = useState<
+  { id: string; name: string; image: string }[]
+>([]);
+const [searchQuery, setSearchQuery] = useState('');
+ // ✅ Use the correctly typed navigation hook
+ const navigation = useNavigation<HomeScreenNavigationProp>();
+  useEffect(()=>{
+    GetStores();
+  },[])
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query); 
+  
+    if (!query.trim()) {
+      setFilteredRestaurants([]); 
+      return;
+    }
+  
+    const foundRestaurants = restaurantCategories
+      .flatMap(category => category.restaurants) 
+      .filter(restaurant => restaurant.name.toLowerCase().includes(query.toLowerCase()));
+  
+    setFilteredRestaurants(foundRestaurants);
+    Keyboard.dismiss(); 
+  };
+
+  async function GetStores (){
+    const { data, error} = await supabase.from('store').select('*');
+    if (error){
+      setError("Failed to fetch data");
+      return        
+    }
+    console.log(data);
+    setStores(data);
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="auto" />
+
       {/* Header */}
       <View style={styles.header}>
         <Image style={styles.profileImage} source={{ uri: 'https://via.placeholder.com/56' }} />
@@ -83,53 +126,75 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
+      {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBox}>
           <Ionicons name="search" size={20} color="gray" />
-          <TextInput placeholder="Restaurants and cuisines" keyboardType="default" style={styles.searchInput} />
+          <TextInput
+            placeholder="Search for a restaurant"
+            keyboardType="default"
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={(event) => handleSearch(event.nativeEvent.text)}
+            returnKeyType="search"
+          />
         </View>
         <TouchableOpacity>
           <Ionicons name="filter" size={24} color="#4371A7" />
         </TouchableOpacity>
       </View>
 
-      {/* Body */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Categories />
-
-        {/* Restaurant Rows with Images */}
-        {restaurantCategories.map((category) => (
-          <View key={category.id} style={styles.featuredRowContainer}>
-            {/* Category Image */}
-            <Image source={{ uri: category.image }} style={styles.categoryImage} />
-
-            {/* Title & Arrow */}
-            <View style={styles.rowHeader}>
-              <Text style={styles.rowTitle}>{category.title}</Text>
-              <TouchableOpacity>
-                <Ionicons name="arrow-forward" size={24} color="#4371A7" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Restaurants */}
-            <FlatList
-              data={category.restaurants}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.restaurantCard}>
-                  <Image source={{ uri: item.image }} style={styles.restaurantImage} />
+      {/* FlatList - Main Content */}
+      <FlatList
+        ListHeaderComponent={
+          <>
+            <Categories />
+            {searchQuery && (
+              <>
+                <Text style={styles.searchTitle}>Search Results:</Text>
+                {filteredRestaurants.length > 0 ? (
+                  <FlatList
+                    data={filteredRestaurants}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                      <View style={styles.restaurantCard}>
+                        <Image source={{ uri: item.image }} style={styles.restaurantImage} />
+                        <View style={styles.restaurantInfo}>
+                          <Text style={styles.restaurantName}>{item.name}</Text>
+                        </View>
+                      </View>
+                    )}
+                  />
+                ) : (
+                  <Text style={styles.noResults}>No restaurants found</Text>
+                )}
+              </>
+            )}
+          </>
+        }
+        data={restaurantCategories}
+        keyExtractor={(category) => category.id}
+        renderItem={({ item: category }) => (
+          <FlatList
+            data={category.restaurants}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.restaurantCard}
+                onPress={() => navigation.navigate('Restaurant', { restaurant: item })} // ✅ Ensure 'Restaurant' matches exactly
+                >
+                <Image source={{ uri: item.image }} style={styles.restaurantImage} />
+                <View style={styles.restaurantInfo}>
                   <Text style={styles.restaurantName}>{item.name}</Text>
                 </View>
-              )}
-            />
-          </View>
-        ))}
-
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+      />
     </SafeAreaView>
   );
 };
@@ -234,6 +299,28 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+
+  searchTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    paddingHorizontal: 16,
+  },
+  noResults: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    color: 'gray',
+  },
+
+  menuButton: { backgroundColor: '#4371A7', paddingVertical: 5, paddingHorizontal: 15, borderRadius: 5, marginTop: 5 },
+  menuButtonText: { color: 'white', fontWeight: 'bold' },
+  restaurantInfo: {
+    flexDirection: 'column', // Ensures text is aligned properly
+    alignItems: 'center',
+    marginTop: 5,
   },
 });
 
