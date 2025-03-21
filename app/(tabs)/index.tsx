@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Keyboard } from 'react-native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Image,
   ScrollView,
@@ -14,7 +15,6 @@ import {
   StyleSheet,
   FlatList,
 } from 'react-native';
-
 import Categories from '../components/Categories';
 import {supabase} from '../../supabaseClient';
 
@@ -58,20 +58,24 @@ const restaurantCategories = [
   },
 ];
 
-const HomeScreen = () => {
-  const navigation = useNavigation();
+type RootStackParamList = {
+  Home: undefined;
+  Restaurant: { restaurant: { id: string; name: string; image: string } };
+};
+
+// ✅ Define the navigation type
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
+ 
+const HomeScreen: React.FC = () => {
   const [error, setError] = useState("");
   const [stores, setStores] = useState<any[]>([]); 
   const [filteredRestaurants, setFilteredRestaurants] = useState<
   { id: string; name: string; image: string }[]
 >([]);
 const [searchQuery, setSearchQuery] = useState('');
-  
-
-  useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, []);
-
+ // ✅ Use the correctly typed navigation hook
+ const navigation = useNavigation<HomeScreenNavigationProp>();
   useEffect(()=>{
     GetStores();
   },[])
@@ -156,7 +160,9 @@ const [searchQuery, setSearchQuery] = useState('');
                     renderItem={({ item }) => (
                       <View style={styles.restaurantCard}>
                         <Image source={{ uri: item.image }} style={styles.restaurantImage} />
-                        <Text style={styles.restaurantName}>{item.name}</Text>
+                        <View style={styles.restaurantInfo}>
+                          <Text style={styles.restaurantName}>{item.name}</Text>
+                        </View>
                       </View>
                     )}
                   />
@@ -170,27 +176,23 @@ const [searchQuery, setSearchQuery] = useState('');
         data={restaurantCategories}
         keyExtractor={(category) => category.id}
         renderItem={({ item: category }) => (
-          <View style={styles.featuredRowContainer}>
-            <Image source={{ uri: category.image }} style={styles.categoryImage} />
-            <View style={styles.rowHeader}>
-              <Text style={styles.rowTitle}>{category.title}</Text>
-              <TouchableOpacity>
-                <Ionicons name="arrow-forward" size={24} color="#4371A7" />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={category.restaurants}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.restaurantCard}>
-                  <Image source={{ uri: item.image }} style={styles.restaurantImage} />
+          <FlatList
+            data={category.restaurants}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.restaurantCard}
+                onPress={() => navigation.navigate('Restaurant', { restaurant: item })} // ✅ Ensure 'Restaurant' matches exactly
+                >
+                <Image source={{ uri: item.image }} style={styles.restaurantImage} />
+                <View style={styles.restaurantInfo}>
                   <Text style={styles.restaurantName}>{item.name}</Text>
                 </View>
-              )}
-            />
-          </View>
+              </TouchableOpacity>
+            )}
+          />
         )}
       />
     </SafeAreaView>
@@ -312,6 +314,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: 'gray',
   },
+  restaurantInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
+  detailsButton: { marginLeft: 10, padding: 5 },
+  
+
 });
 
 export default HomeScreen;

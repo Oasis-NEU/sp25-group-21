@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { supabase } from '../../supabaseClient';
 
 interface Restaurant {
     id: number;
     name: string;
-    rating: number;
     latitude: number;
     longitude: number;
 }
@@ -15,24 +15,55 @@ const Mappi: React.FC = () => {
     const [location, setLocation] = useState<Location.LocationObjectCoords | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                setErrorMsg('Permission to access location was denied');
-                return;
+            try {
+                // Request location permission
+                let { status } = await Location.requestForegroundPermissionsAsync();
+                if (status !== 'granted') {
+                    setErrorMsg('Permission to access location was denied');
+                    setLoading(false);
+                    return;
+                }
+
+                // Get user's current location
+                let userLocation = await Location.getCurrentPositionAsync({});
+                setLocation(userLocation.coords);
+
+                // Fetch restaurant data from Supabase
+                const { data, error } = await supabase
+                    .from('store')  // Ensure table name is correct
+                    .select('serialid, businessname, latitude, longitude'); // Ensure correct column names
+
+                if (error) {
+                    console.error('Error fetching restaurants:', error.message);
+                    setErrorMsg('Failed to fetch restaurants');
+                } else {
+                    // Debugging: Log the data to check if Supabase returns valid values
+                    console.log('Fetched restaurants:', data);
+
+                    // Filter out any records with missing coordinates
+                    const formattedData: Restaurant[] = data
+                        .filter((restaurant: any) => restaurant.latitude && restaurant.longitude)
+                        .map((restaurant: any) => ({
+                            id: restaurant.serialid,
+                            name: restaurant.businessname,
+                            latitude: parseFloat(restaurant.latitude),  // Ensure they are numbers
+                            longitude: parseFloat(restaurant.longitude),
+                        }));
+
+                    console.log('Formatted restaurant data:', formattedData);
+
+                    setRestaurants(formattedData);
+                }
+            } catch (err) {
+                console.error('Error in useEffect:', err);
+                setErrorMsg('An unexpected error occurred');
+            } finally {
+                setLoading(false);
             }
-
-            let userLocation = await Location.getCurrentPositionAsync({});
-            setLocation(userLocation.coords);
-
-            // Simulating fetching restaurant data
-            setRestaurants([
-                { id: 1, name: "Pasta Paradise", rating: 4.5, latitude: userLocation.coords.latitude + 0.002, longitude: userLocation.coords.longitude + 0.002 },
-                { id: 2, name: "Burger Bistro", rating: 4.2, latitude: userLocation.coords.latitude - 0.002, longitude: userLocation.coords.longitude - 0.002 },
-                { id: 3, name: "Sushi Central", rating: 4.8, latitude: userLocation.coords.latitude + 0.003, longitude: userLocation.coords.longitude - 0.003 }
-            ]);
         })();
     }, []);
 
@@ -44,7 +75,7 @@ const Mappi: React.FC = () => {
         );
     }
 
-    if (!location) {
+    if (loading || !location) {
         return (
             <View style={styles.container}>
                 <ActivityIndicator size="large" color="#FF5733" />
@@ -74,7 +105,6 @@ const Mappi: React.FC = () => {
                     <Callout>
                         <View style={styles.callout}>
                             <Text style={styles.calloutTitle}>{restaurant.name}</Text>
-                            <Text>⭐ {restaurant.rating}</Text>
                         </View>
                     </Callout>
                 </Marker>
