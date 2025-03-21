@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import React, { useLayoutEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import {supabase} from '../../supabaseClient';
 import {
   Image,
   ScrollView,
