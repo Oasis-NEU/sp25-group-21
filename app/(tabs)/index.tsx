@@ -184,7 +184,7 @@ const [searchQuery, setSearchQuery] = useState('');
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.restaurantCard}
-                onPress={() => navigation.navigate('Restaurant', { restaurant: item })} // ✅ Ensure 'Restaurant' matches exactly
+                onPress={() => navigation.navigate('Restaurant', { restaurant: item })} 
                 >
                 <Image source={{ uri: item.image }} style={styles.restaurantImage} />
                 <View style={styles.restaurantInfo}>
