@@ -4,6 +4,7 @@ import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Keyboard } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { router } from 'expo-router';
 import {
   Image,
   ScrollView,
@@ -61,6 +62,7 @@ const restaurantCategories = [
 type RootStackParamList = {
   Home: undefined;
   Restaurant: { restaurant: { id: string; name: string; image: string } };
+  Menu: {name: string; image: string};
 };
 
 // ✅ Define the navigation type
@@ -69,7 +71,7 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'H
  
 const HomeScreen: React.FC = () => {
   const [error, setError] = useState("");
-  const [stores, setStores] = useState<any[]>([]); 
+  const [stores, setStores] = useState<any[]>([]);
   const [filteredRestaurants, setFilteredRestaurants] = useState<
   { id: string; name: string; image: string }[]
 >([]);
@@ -81,19 +83,19 @@ const [searchQuery, setSearchQuery] = useState('');
   },[])
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query); 
-  
+    setSearchQuery(query);
+ 
     if (!query.trim()) {
-      setFilteredRestaurants([]); 
+      setFilteredRestaurants([]);
       return;
     }
-  
+ 
     const foundRestaurants = restaurantCategories
-      .flatMap(category => category.restaurants) 
+      .flatMap(category => category.restaurants)
       .filter(restaurant => restaurant.name.toLowerCase().includes(query.toLowerCase()));
-  
+ 
     setFilteredRestaurants(foundRestaurants);
-    Keyboard.dismiss(); 
+    Keyboard.dismiss();
   };
 
   async function GetStores (){
@@ -184,7 +186,12 @@ const [searchQuery, setSearchQuery] = useState('');
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.restaurantCard}
-                onPress={() => navigation.navigate('Restaurant', { restaurant: item })} 
+                onPress={() => 
+                  router.push({
+                    pathname: '/menu/[id]',
+                    params: { id: item.id, name: item.name, image: item.image }
+                  })
+                }
                 >
                 <Image source={{ uri: item.image }} style={styles.restaurantImage} />
                 <View style={styles.restaurantInfo}>
@@ -314,14 +321,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     color: 'gray',
   },
+  restaurantInfo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' },
+  detailsButton: { marginLeft: 10, padding: 5 },
+ 
 
-  menuButton: { backgroundColor: '#4371A7', paddingVertical: 5, paddingHorizontal: 15, borderRadius: 5, marginTop: 5 },
-  menuButtonText: { color: 'white', fontWeight: 'bold' },
-  restaurantInfo: {
-    flexDirection: 'column', // Ensures text is aligned properly
-    alignItems: 'center',
-    marginTop: 5,
-  },
 });
 
 export default HomeScreen;
