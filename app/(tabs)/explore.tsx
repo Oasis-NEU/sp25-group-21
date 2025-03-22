@@ -129,7 +129,7 @@ const ExplorePage: React.FC = () => {
                   <View style={styles.card}>
                     <Image source={{ uri: card.image }} style={styles.cardImage} />
                     <Text style={styles.cardText}>{card.name}</Text>
-                    <Text style={styles.cardRating}>⭐ {card.rating}</Text>
+                    <Text style={styles.cardRating}> {card.rating}</Text>
                     <Text style={styles.cardDescription}>{card.description}</Text>
                   </View>
                 ) : (
