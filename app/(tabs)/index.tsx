@@ -27,7 +27,7 @@ const restaurantCategories = [
     description: 'Highly rated restaurants',
     image: 'https://via.placeholder.com/300x150', // Category image
     restaurants: [
-      { id: '101', name: 'Pizza Palace', image: 'https://bellowsfallsvt.org/wp-content/uploads/2021/09/Pizza-Palace.jpg' },
+      { id: '626', name: 'Dunkin', image: 'https://embroideres.com/files/3416/1239/3221/Dunkin_donuts_round_logo_embroidery_design.jpg' },
       { id: '102', name: 'Sushi Central', image: 'https://images.rappi.com.mx/restaurants_logo/sushi-central-logo1-1567727663518-1671543413280.png' },
       { id: '103', name: 'Burger Hub', image: 'https://static.wixstatic.com/media/9a1d3f_98137e3ad55a455c866d8b5bbd444988~mv2.png/v1/fill/w_563,h_251,al_c,lg_1,q_85,enc_avif,quality_auto/Burger%20Hub%20Logo%20_%20Located%20at%206231%20S%2027th%20St%20Greenfield%2C%20WI%2053221%20_edited.png' },
       { id: '104', name: 'Pasta House', image: 'https://images.getbento.com/accounts/37f1434cf89df96a29c06808001134ce/media/images/Catering_Logo_24-removebg-preview.png?w=1000&fit=max&auto=compress,format&h=1000' },
@@ -175,31 +175,32 @@ const [searchQuery, setSearchQuery] = useState('');
             )}
           </>
         }
-        data={restaurantCategories}
+        data={stores}
         keyExtractor={(category) => category.id}
         renderItem={({ item: category }) => (
           <FlatList
-            data={category.restaurants}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
+            data={stores}
+            keyExtractor={(item) => item.id.toString()}
+             numColumns={4}  // Ensures 4 restaurants per row
+            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }} // Ensures proper spacing
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.restaurantCard}
-                onPress={() => 
-                  router.push({
-                    pathname: '/menu/[id]',
-                    params: { id: item.id, name: item.name, image: item.image }
-                  })
-                }
-                >
-                <Image source={{ uri: item.image }} style={styles.restaurantImage} />
-                <View style={styles.restaurantInfo}>
-                  <Text style={styles.restaurantName}>{item.name}</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
+              style={styles.restaurantCard}
+              onPress={() =>
+                router.push({
+                  pathname: '/menu/[id]',
+                  params: { id: item.id, name: item.businessname, image: item.image_url }
+                })
+              } 
+            >
+              <Image source={{ uri: item.image_url || 'https://via.placeholder.com/150' }} style={styles.restaurantImage} />
+              <View style={styles.restaurantInfo}>
+                <Text style={styles.restaurantName}>{item.businessname}</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+
         )}
       />
     </SafeAreaView>
