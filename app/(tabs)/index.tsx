@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+
 import React, { ReactNode, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Keyboard } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { router } from 'expo-router';
+import { router, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   Image,
   ScrollView,
@@ -23,6 +24,7 @@ type RootStackParamList = {
   Home: undefined;
   Restaurant: { restaurant: { id: string; name: string; image: string } };
   Menu: { name: string; image: string };
+  Cart: undefined; 
 };
 
 // ✅ Define the navigation prop type
@@ -41,7 +43,7 @@ const HomeScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   
   // ✅ Use the navigation hook
-  const navigation = useNavigation<HomeScreenNavigationProp>();
+  const router = useRouter();
 
   useEffect(() => {
     GetStores();
@@ -88,20 +90,33 @@ const HomeScreen: React.FC = () => {
       <StatusBar style="auto" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <Image style={styles.profileImage} source={{ uri: 'https://via.placeholder.com/56' }} />
-        <View style={styles.locationContainer}>
-          <Text style={styles.deliveryText}>Deliver Now?</Text>
-          <TouchableOpacity>
-            <Text style={styles.currentLocation}>
-              Current Location <Ionicons name="chevron-down" size={20} color="#4371A7" />
-            </Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity>
-          <Ionicons name="person-outline" size={35} color="#4371A7" />
-        </TouchableOpacity>
-      </View>
+<View style={styles.header}>
+  <Image style={styles.profileImage} source={{ uri: 'https://via.placeholder.com/56' }} />
+  <View style={styles.locationContainer}>
+    <Text style={styles.deliveryText}>Deliver Now?</Text>
+    <TouchableOpacity>
+      <Text style={styles.currentLocation}>
+        Current Location <Ionicons name="chevron-down" size={20} color="#4371A7" />
+      </Text>
+    </TouchableOpacity>
+  </View>
+
+  {/* Cart Icon */}
+  <TouchableOpacity onPress={async () => {
+  const storedCart = await AsyncStorage.getItem('cart');
+  console.log("Cart Data:", storedCart);
+  router.push('/screens/CartScreen');
+}}>
+  <Ionicons name="cart-outline" size={35} color="#4371A7" />
+</TouchableOpacity>
+
+
+  {/* Profile Icon */}
+  <TouchableOpacity>
+    <Ionicons name="person-outline" size={35} color="#4371A7" />
+  </TouchableOpacity>
+</View>
+
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>

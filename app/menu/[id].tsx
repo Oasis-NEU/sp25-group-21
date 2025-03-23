@@ -10,6 +10,21 @@ import {
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { supabase } from "../../supabaseClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TouchableOpacity } from "react-native";
+import Ionicons from "@expo/vector-icons/build/Ionicons";
+import { useRouter } from "expo-router";
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+
+
+type RootStackParamList = {
+  Home: undefined;
+  Restaurant: { id: string; name: string; image: string };
+  Menu: { name: string; image: string };
+  Cart: undefined;  // ✅ Make sure "Cart" is defined here
+};
+
 
 type MenuItem = {
   id: number;
@@ -28,6 +43,8 @@ export default function RestaurantMenu() {
   const params = useLocalSearchParams();
   const restaurantName = (params.name as string) || "Unknown Restaurant";
   const restaurantId = (params.id as string) || "";
+  const router = useRouter();
+
 
   const [serialid, setSerialid] = useState<string | null>(null);
   const [menuSections, setMenuSections] = useState<Section[]>([]);
@@ -35,6 +52,61 @@ export default function RestaurantMenu() {
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState(params.image || "");
   const [retryCount, setRetryCount] = useState(0);
+
+
+  const [cart, setCart] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadCart = async () => {
+        try {
+            const cartData = await AsyncStorage.getItem('cart');
+            if (cartData) {
+                setCart(JSON.parse(cartData));
+            }
+        } catch (error) {
+            console.error("❌ Failed to load cart:", error);
+        }
+    };
+
+    loadCart();
+}, []);
+
+
+
+
+// Function to add an item to the cart
+const addToCart = async (item: { id: any; name?: string; category?: string; price?: number; description?: string; }) => {
+  try {
+    if (!item || !item.id) {
+      console.error("Error: Item or item ID is missing", item);
+      return;
+    }
+
+    const cartData = await AsyncStorage.getItem("cart");
+    let cart = cartData ? JSON.parse(cartData) : [];
+
+    // Ensure cart is always an array
+    if (!Array.isArray(cart)) {
+      cart = [];
+    }
+
+    // Check if the item already exists in the cart
+    const existingItemIndex = cart.findIndex((cartItem: { id: any; }) => cartItem.id === item.id);
+    
+    if (existingItemIndex !== -1) {
+      cart[existingItemIndex].quantity += 1;
+    } else {
+      cart.push({ ...item, quantity: 1 });
+    }
+
+    await AsyncStorage.setItem("cart", JSON.stringify(cart));
+    console.log("✅ Item added to cart:", item);
+  } catch (error) {
+    console.error("❌ Error adding to cart:", error);
+  }
+};
+
+
 
   // ✅ Step 1: Fetch `serialid` from Supabase
   const fetchSerialId = async () => {
@@ -173,45 +245,67 @@ export default function RestaurantMenu() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        {imageUrl ? (
-          <Image
+     <View style={styles.header}>
+    {imageUrl ? (
+        <Image
             source={{
-              uri: Array.isArray(imageUrl)
-                ? imageUrl[0]
-                : imageUrl || "https://via.placeholder.com/150",
+                uri: Array.isArray(imageUrl)
+                    ? imageUrl[0]
+                    : imageUrl || "https://via.placeholder.com/150",
             }}
             style={styles.restaurantImage}
-          />
-        ) : (
-          <View style={[styles.restaurantImage, styles.placeholderImage]} />
-        )}
-        <Text style={styles.restaurantName}>{restaurantName}</Text>
-      </View>
+        />
+    ) : (
+        <View style={[styles.restaurantImage, styles.placeholderImage]} />
+    )}
+    
+    <Text style={styles.restaurantName}>{restaurantName}</Text>
+
+    {/* Cart Icon with Badge */}
+    {/* Cart Icon with Badge */}
+    <TouchableOpacity onPress={() => router.push('/screens/CartScreen')} style={styles.cartContainer}>
+    <Ionicons name="cart-outline" size={35} color="black" />
+    {cart.length > 0 && (
+        <View style={styles.cartBadge}>
+            <Text style={styles.cartBadgeText}>{cart.length}</Text>
+        </View>
+    )}
+</TouchableOpacity>
+
+</View>
+
 
       <SectionList
-        sections={menuSections}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.menuItem}>
-            <Text style={styles.menuItemName}>{item.name}</Text>
-            <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
-            <Text style={styles.menuItemDescription}>{item.description}</Text>
-          </View>
-        )}
-        renderSectionHeader={({ section: { title } }) => (
-          <View style={styles.categoryHeader}>
+    sections={menuSections}
+    keyExtractor={(item) => item.id.toString()}
+    renderItem={({ item }) => (
+        <View style={styles.menuItem}>
+            <View style={{ flex: 1 }}>
+                <Text style={styles.menuItemName}>{item.name}</Text>
+                <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
+                <Text style={styles.menuItemDescription}>{item.description}</Text>
+            </View>
+
+            {/* Add to Cart Button */}
+            <TouchableOpacity onPress={() => addToCart(item)} style={styles.addButton}>
+                <Ionicons name="add-circle-outline" size={30} color="green" />
+            </TouchableOpacity>
+        </View>
+    )}
+    renderSectionHeader={({ section: { title } }) => (
+        <View style={styles.categoryHeader}>
             <Text style={styles.categoryTitle}>{title}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
+        </View>
+    )}
+    ListEmptyComponent={
+        <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              No menu items available for {restaurantName}
+                No menu items available for {restaurantName}
             </Text>
-          </View>
-        }
-      />
+        </View>
+    }
+/>
+
     </SafeAreaView>
   );
 }
@@ -244,5 +338,33 @@ const styles = StyleSheet.create({
     fontWeight: "bold", 
     textAlign: "center" 
   },
+  addButton: {
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+},
+
+cartContainer: {
+    position: "relative",
+},
+
+cartBadge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "red",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+},
+
+cartBadgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+},
 });
 

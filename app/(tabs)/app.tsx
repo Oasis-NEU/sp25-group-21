@@ -8,6 +8,9 @@ import LoginScreen from './login';
 import HomeScreen from '.';
 import RestaurantScreen from '../screens/RestaurantScreen';
 import RestaurantMenu from '../screens/RestaurantMenuScreen';
+import CartScreen from '../screens/CartScreen';
+
+
 
 
 export type RootStackParamList = {
@@ -16,6 +19,7 @@ export type RootStackParamList = {
   Menu: {name: string; image: string};
   SignUp: undefined;
   Login: undefined;
+  Cart: undefined;
 };
 
 declare global {
@@ -34,6 +38,9 @@ export default function App() {
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Restaurant" component={RestaurantScreen} options={{ title: 'Restaurant Details' }} />
       <Stack.Screen name="Menu" component={RestaurantMenu} options={({ route }) => ({ title: route.params?.name || "Restaurant Menu" })} />
+      <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Menu" component={RestaurantMenu} />
+      <Stack.Screen name="Cart" component={CartScreen} />
 
       </Stack.Navigator>
     </NavigationContainer>
