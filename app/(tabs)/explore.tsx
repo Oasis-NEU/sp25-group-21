@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import Swiper from "react-native-deck-swiper";
 import { supabase } from "../../supabaseClient";
+import { useRouter } from "expo-router"; // ✅ Import Expo Router
 
 const { width, height } = Dimensions.get("window");
 
@@ -19,6 +20,7 @@ const ExplorePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [foodItems, setFoodItems] = useState<any[]>([]);
   const swiperRef = useRef<any>(null);
+  const router = useRouter(); // ✅ Use Expo Router
 
   useEffect(() => {
     if (!selectedCategory) {
@@ -50,39 +52,29 @@ const ExplorePage: React.FC = () => {
         }))
         .sort(() => Math.random() - 0.5); // Shuffle restaurants
   
-      // 🛠 Duplicate the list to create even more cards
-      const expandedData = [...shuffledData, ...shuffledData, ...shuffledData]; // Tripled data size
-  
-      setFoodItems(expandedData);
+      setFoodItems(shuffledData);
     }
   };
-  
 
+  // ✅ Navigate to restaurant page on swipe right (LIKE)
   const handleSwipeRight = (index: number) => {
-    setFoodItems((prev) => prev.filter((_, i) => i !== index));
+    const likedRestaurant = foodItems[index];
+
+    if (likedRestaurant) {
+      console.log("✅ Liked Restaurant:", likedRestaurant);
+      router.push({
+        pathname: "../menu/[id]",
+        params: {
+          id: likedRestaurant.id,
+          name: likedRestaurant.name,
+          image: likedRestaurant.image,
+        },
+      });
+    }
   };
 
-  const handleSwipeLeft = async (index: number) => {
+  const handleSwipeLeft = (index: number) => {
     setFoodItems((prev) => prev.filter((_, i) => i !== index));
-
-    let query = supabase
-      .from("store")
-      .select("serialid, businessname, image_url, category, rating, description")
-      .eq("category", selectedCategory)
-      .limit(1);
-
-    const { data, error } = await query;
-
-    if (!error && data.length > 0) {
-      const newRestaurant = {
-        id: data[0].serialid,
-        name: data[0].businessname,
-        image: data[0].image_url,
-        rating: data[0].rating,
-        description: data[0].description,
-      };
-      setFoodItems((prev) => [...prev, newRestaurant]);
-    }
   };
 
   return (
@@ -92,27 +84,26 @@ const ExplorePage: React.FC = () => {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {categories.map((item) => (
             <TouchableOpacity
-  key={item}
-  style={[
-    styles.categoryButton,
-    selectedCategory === item && styles.selectedCategoryButton,
-  ]}
-  onPress={() => {
-    setSelectedCategory(item); // 🛠 Set new category
-    setFoodItems([]); // 🛠 Reset food items immediately
-    fetchFoodItems(); // 🛠 Fetch new items for the new category
-  }}
->
-  <Text
-    style={[
-      styles.categoryText,
-      selectedCategory === item && styles.selectedCategoryText,
-    ]}
-  >
-    {item}
-  </Text>
-</TouchableOpacity>
-
+              key={item}
+              style={[
+                styles.categoryButton,
+                selectedCategory === item && styles.selectedCategoryButton,
+              ]}
+              onPress={() => {
+                setSelectedCategory(item); 
+                setFoodItems([]); 
+                fetchFoodItems(); 
+              }}
+            >
+              <Text
+                style={[
+                  styles.categoryText,
+                  selectedCategory === item && styles.selectedCategoryText,
+                ]}
+              >
+                {item}
+              </Text>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
@@ -138,8 +129,8 @@ const ExplorePage: React.FC = () => {
                   </View>
                 )
               }
-              onSwipedRight={handleSwipeRight}
-              onSwipedLeft={handleSwipeLeft}
+              onSwipedRight={handleSwipeRight} // ✅ Like → Navigate
+              onSwipedLeft={handleSwipeLeft} // ❌ Dislike → Move to next
               stackSize={3}
               backgroundColor="transparent"
               overlayLabels={{
