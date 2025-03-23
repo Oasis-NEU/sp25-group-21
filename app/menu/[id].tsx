@@ -1,178 +1,196 @@
-import { useEffect, useState } from 'react';
-import { Image, Text, View, SafeAreaView, FlatList, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { supabase } from '../../supabaseClient';
+import { useEffect, useState } from "react";
+import {
+  Image,
+  Text,
+  View,
+  SafeAreaView,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { supabase } from "../../supabaseClient";
 
-// Define a type for menu items
 type MenuItem = {
-    id: number;
-    'Item Name': string;
-    'Description'?: string;
-    'Price (USD)': number | string;
-    image_url?: string;  
+  id: number;
+  name: string;
 };
 
 export default function RestaurantMenu() {
-    const params = useLocalSearchParams();
-    const serialid = params.serialid as string || ''; 
-    const name = params.name as string || 'Unknown Restaurant';
+  const params = useLocalSearchParams();
+  const restaurantName = (params.name as string) || "Unknown Restaurant";
+  const restaurantId = (params.id as string) || "";
 
-    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [imageUrl, setImageUrl] = useState('');
-    const [retryCount, setRetryCount] = useState(0);
+  const [serialid, setSerialid] = useState<string | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState(params.image || "");
+  const [retryCount, setRetryCount] = useState(0);
 
-    const getErrorMessage = (err: any): string => {
-        if (err instanceof Error) return err.message;
-        if (typeof err === 'string') return err;
-        if (err && typeof err === 'object') {
-            if ('message' in err) return String(err.message);
-            try {
-                return JSON.stringify(err);
-            } catch (e) {
-                return 'Unknown error occurred';
-            }
-        }
-        return String(err || 'Unknown error occurred');
-    };
+  // ✅ Step 1: Fetch `serialid` from Supabase
+  const fetchSerialId = async () => {
+    try {
+      console.log(`📌 Fetching serialid for restaurantId: ${restaurantId}`);
 
-    const fetchRestaurantData = async () => {
-        try {
-            console.log('🔄 Fetching data from Supabase...');
-            setLoading(true);
+      const { data: storeData, error: storeError } = await supabase
+        .from("store")
+        .select("serialid, image_url")
+        .eq("serialid", restaurantId)
+        .single();
 
-            if (!serialid) {
-                throw new Error('No restaurant ID provided');
-            }
-
-
-            console.log('📸 Fetching restaurant image...');
-            const { data: restaurantData, error: restaurantError } = await supabase
-                .from('store')
-                .select('image_url')
-                .eq('serialid', serialid)
-                .single();
-
-            if (restaurantError) {
-                console.error('Restaurant Fetch Error:', restaurantError);
-                throw new Error(`Failed to fetch restaurant: ${restaurantError.message}`);
-            }
-
-            console.log('Restaurant data:', restaurantData);
-            setImageUrl(restaurantData?.image_url || '');
-
-            // Fetch menu items
-            const menuTable = `${serialid}_menu`;
-            console.log(`Fetching menu from table: ${menuTable}`);
-
-            const { data: menuData, error: menuError } = await supabase
-                .from(menuTable)
-                .select('*');
-
-            if (menuError) {
-                console.error('Menu Fetch Error:', menuError);
-                throw new Error(`Failed to fetch menu: ${menuError.message}`);
-            }
-
-            console.log('Menu Data:', menuData);
-
-            // Set menu data correctly
-            setMenuItems(menuData || []);
-            setError(null);
-            setLoading(false);
-
-        } catch (err: any) {
-            const errorMessage = getErrorMessage(err);
-            console.error('Fetch Error:', errorMessage);
-            setError(errorMessage);
-            setLoading(false);
-
-            Alert.alert('Error', errorMessage);
-        }
-    };
-
-    useEffect(() => {
-        console.log('Received params:', params); // Log the params for debugging
-        console.log('Serialid:', serialid); // Log serialid for debugging
-        console.log('Restaurant name:', name); // Log restaurant name for debugging
-
-        if (!serialid) {
-            setError('No restaurant ID provided');
-            setLoading(false);
-            return;
-        }
-
-        fetchRestaurantData();
-    }, [serialid, retryCount]);
-
-    // If still loading, show the loading screen
-    if (loading) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <Text style={styles.loadingText}>Loading menu for {name}...</Text>
-                <ActivityIndicator size="large" color="#0000ff" />
-                <Text style={styles.debugText}>Restaurant ID: {serialid}</Text>
-            </SafeAreaView>
+      if (storeError || !storeData) {
+        console.error("🔴 Store Fetch Error:", storeError);
+        throw new Error(
+          `Failed to fetch restaurant details: ${
+            storeError?.message || "No data found"
+          }`
         );
+      }
+
+      console.log("✅ Retrieved Serial ID:", storeData.serialid);
+      setSerialid(storeData.serialid);
+      setImageUrl(storeData.image_url || "");
+
+      return storeData.serialid;
+    } catch (err: any) {
+      console.error("❌ Serial ID Fetch Error:", err.message);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  // ✅ Step 2: Fetch Entire Menu from Table
+  const fetchMenuData = async (serialid: string) => {
+    try {
+      if (!serialid) {
+        throw new Error("No restaurant serial ID found.");
+      }
+
+      const tableName = `${serialid}_menu`;
+      console.log(`🔍 Fetching entire menu from: ${tableName}`);
+
+      const { data: menuData, error: menuError } = await supabase
+        .from(tableName)
+        .select("itemname"); // Retrieve ONLY the names of dishes
+
+      if (menuError) {
+        console.error("🔴 Menu Fetch Error:", menuError);
+        throw new Error(`Failed to fetch menu: ${menuError.message}`);
+      }
+
+      if (!menuData || menuData.length === 0) {
+        console.warn("⚠️ No menu items found.");
+        setMenuItems([]);
+        setLoading(false);
+        return;
+      }
+
+      console.log("✅ Retrieved Menu Items:", menuData);
+
+      // Convert the menu data into an array of names
+      const formattedMenuItems: MenuItem[] = menuData.map((item: any, index: number) => ({
+        id: index + 1, // Assign a unique ID (as we don't have productid)
+        name: item.itemname,
+      }));
+
+      setMenuItems(formattedMenuItems);
+      setError(null);
+      setLoading(false);
+    } catch (err: any) {
+      console.error("❌ Menu Fetch Error:", err.message);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("📩 Received Params:", params);
+
+    if (!restaurantId) {
+      setError("No restaurant ID provided.");
+      setLoading(false);
+      return;
     }
 
-    // If there is an error, display the error message
-    if (error) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <Text style={styles.errorText}>⚠️ Error: {error}</Text>
-                <Text style={styles.debugText}>🔎 Check database table: {serialid}_menu</Text>
-                <View style={styles.debugButton}>
-                    <Text style={styles.debugButtonText} onPress={() => setRetryCount(prev => prev + 1)}>
-                        Try Again
-                    </Text>
-                </View>
-            </SafeAreaView>
-        );
-    }
+    fetchSerialId().then((serialid) => {
+      if (serialid) {
+        fetchMenuData(serialid);
+      }
+    });
+  }, [restaurantId, retryCount]);
 
+  if (loading) {
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.restaurantImage} />
-                ) : (
-                    <View style={[styles.restaurantImage, styles.placeholderImage]} />
-                )}
-                <Text style={styles.restaurantName}>{name}</Text>
-            </View>
-
-            <FlatList
-                data={menuItems}
-                keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
-                renderItem={({ item }) => (
-                    <View style={styles.menuItem}>
-                        {item.image_url && (
-                            <Image source={{ uri: item.image_url }} style={styles.menuItemImage} />
-                        )}
-                        <Text style={styles.menuItemName}>{item['Item Name']}</Text>
-                        <Text style={styles.menuItemDescription}>{item['Description'] || 'No description'}</Text>
-                        <Text style={styles.menuItemPrice}>
-                            ${typeof item['Price (USD)'] === 'number'
-                                ? item['Price (USD)'].toFixed(2)
-                                : item['Price (USD)']}
-                        </Text>
-                    </View>
-                )}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No menu items available for {name}</Text>
-                        <View style={styles.debugButton}>
-                            <Text style={styles.debugButtonText} onPress={() => setRetryCount(prev => prev + 1)}>
-                                Retry Load
-                            </Text>
-                        </View>
-                    </View>
-                }
-            />
-        </SafeAreaView>
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.loadingText}>
+          Loading menu for {restaurantName}...
+        </Text>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </SafeAreaView>
     );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.errorText}>⚠️ Error: {error}</Text>
+        <View style={styles.debugButton}>
+          <Text
+            style={styles.debugButtonText}
+            onPress={() => setRetryCount((prev) => prev + 1)}
+          >
+            Try Again
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        {imageUrl ? (
+          <Image
+            source={{
+              uri: Array.isArray(imageUrl)
+                ? imageUrl[0]
+                : imageUrl || "https://via.placeholder.com/150",
+            }}
+            style={styles.restaurantImage}
+          />
+        ) : (
+          <View style={[styles.restaurantImage, styles.placeholderImage]} />
+        )}
+        <Text style={styles.restaurantName}>{restaurantName}</Text>
+      </View>
+
+      <FlatList
+        data={menuItems}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.menuItem}>
+            <Text style={styles.menuItemName}>{item.name}</Text>
+          </View>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No menu items available for {restaurantName}
+            </Text>
+            <View style={styles.debugButton}>
+              <Text
+                style={styles.debugButtonText}
+                onPress={() => setRetryCount((prev) => prev + 1)}
+              >
+                Retry Load
+              </Text>
+            </View>
+          </View>
+        }
+      />
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -217,6 +235,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 4,
     },
+    menuItemCategory: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#6b6b6b',
+        marginBottom: 4,
+    },
     menuItemDescription: {
         fontSize: 14,
         color: 'gray',
@@ -227,30 +251,33 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#4371A7',
     },
+    emptyContainer: {
+        alignItems: 'center',
+        padding: 20,
+        justifyContent: 'center',
+    },
+    emptyText: {
+        fontSize: 16,
+        color: 'gray',
+        textAlign: 'center',
+    },
+    loadingText: {
+        fontSize: 16,
+        textAlign: 'center',
+        marginBottom: 10,
+        color: '#555',
+    },
     errorText: {
         fontSize: 18,
         color: 'red',
         textAlign: 'center',
         marginBottom: 10,
     },
-    loadingText: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        padding: 20,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: 'gray',
-        marginBottom: 8,
-    },
     debugText: {
         fontSize: 14,
         color: '#888',
         marginTop: 5,
+        textAlign: 'center',
     },
     debugButton: {
         backgroundColor: '#4371A7',
@@ -262,5 +289,6 @@ const styles = StyleSheet.create({
     debugButtonText: {
         color: 'white',
         fontWeight: 'bold',
-    }
+        textAlign: 'center',
+    },
 });

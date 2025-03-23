@@ -164,7 +164,7 @@ const HomeScreen: React.FC = () => {
                   style={styles.restaurantCard}
                   onPress={() =>
                     router.push({
-                      pathname: '/menu/[id]',
+                      pathname: "./menu/[id]",
                       params: { id: restaurant.serialid, name: restaurant.businessname, image: restaurant.image_url }
                     })
                   }
