@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { 
+    View, 
+    Text, 
+    StyleSheet, 
+    ActivityIndicator, 
+    TouchableOpacity 
+} from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { supabase } from '../../supabaseClient';
+import { useRouter } from 'expo-router'; // ✅ Use Expo Router
 
 interface Restaurant {
     id: number;
@@ -16,11 +23,11 @@ const Mappi: React.FC = () => {
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter(); // ✅ Initialize router
 
     useEffect(() => {
         (async () => {
             try {
-                // Request location permission
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
                     setErrorMsg('Permission to access location was denied');
@@ -28,33 +35,25 @@ const Mappi: React.FC = () => {
                     return;
                 }
 
-                // Get user's current location
                 let userLocation = await Location.getCurrentPositionAsync({});
                 setLocation(userLocation.coords);
 
-                // Fetch restaurant data from Supabase
                 const { data, error } = await supabase
-                    .from('store')  // Ensure table name is correct
-                    .select('serialid, businessname, latitude, longitude'); // Ensure correct column names
+                    .from('store')
+                    .select('serialid, businessname, latitude, longitude');
 
                 if (error) {
                     console.error('Error fetching restaurants:', error.message);
                     setErrorMsg('Failed to fetch restaurants');
                 } else {
-                    // Debugging: Log the data to check if Supabase returns valid values
-                    console.log('Fetched restaurants:', data);
-
-                    // Filter out any records with missing coordinates
                     const formattedData: Restaurant[] = data
                         .filter((restaurant: any) => restaurant.latitude && restaurant.longitude)
                         .map((restaurant: any) => ({
                             id: restaurant.serialid,
                             name: restaurant.businessname,
-                            latitude: parseFloat(restaurant.latitude),  // Ensure they are numbers
+                            latitude: parseFloat(restaurant.latitude),
                             longitude: parseFloat(restaurant.longitude),
                         }));
-
-                    console.log('Formatted restaurant data:', formattedData);
 
                     setRestaurants(formattedData);
                 }
@@ -66,6 +65,19 @@ const Mappi: React.FC = () => {
             }
         })();
     }, []);
+
+    // ✅ Function to handle navigation when tapping the marker
+    const handleMarkerPress = (restaurant: Restaurant) => {
+        console.log(`✅ Marker pressed: ${restaurant.name} (ID: ${restaurant.id})`);
+
+        // 🛠 Workaround: Delay navigation so Callout does not immediately close
+        setTimeout(() => {
+            router.push({
+                pathname: "../menu/[id]",
+                params: { id: restaurant.id, name: restaurant.name }
+            });
+        }, 300);
+    };
 
     if (errorMsg) {
         return (
@@ -101,10 +113,17 @@ const Mappi: React.FC = () => {
                     key={restaurant.id}
                     coordinate={{ latitude: restaurant.latitude, longitude: restaurant.longitude }}
                     title={restaurant.name}
+                    onPress={() => handleMarkerPress(restaurant)} // ✅ Directly handle tap event
                 >
                     <Callout>
                         <View style={styles.callout}>
                             <Text style={styles.calloutTitle}>{restaurant.name}</Text>
+                            <TouchableOpacity 
+                                style={styles.calloutButton}
+                                onPress={() => handleMarkerPress(restaurant)} // ✅ Also allow navigation via button
+                            >
+                                <Text style={styles.calloutButtonText}>View Menu</Text>
+                            </TouchableOpacity>
                         </View>
                     </Callout>
                 </Marker>
@@ -128,10 +147,24 @@ const styles = StyleSheet.create({
     },
     callout: {
         padding: 10,
+        alignItems: "center",
     },
     calloutTitle: {
         fontWeight: 'bold',
         fontSize: 14,
+        marginBottom: 5,
+    },
+    calloutButton: {
+        marginTop: 5,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        backgroundColor: "#FF5733",
+        borderRadius: 5,
+    },
+    calloutButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        textAlign: "center",
     },
 });
 
