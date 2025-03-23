@@ -81,6 +81,13 @@ const HomeScreen: React.FC = () => {
     return grouped;
   };
 
+  type RootStackParamList = {
+    Home: undefined;
+    Restaurant: { restaurant: { id: string; name: string; image: string } };
+    Menu: { name: string; image: string };
+    Cart: undefined; // ✅ Add this
+  };
+
   const groupedRestaurants = groupRestaurants(stores, 5);
 
   return (
@@ -98,8 +105,8 @@ const HomeScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity>
-          <Ionicons name="person-outline" size={35} color="#4371A7" />
+        <TouchableOpacity onPress={() => navigation.navigate("Cart")}>
+          <Ionicons name="cart-outline" size={35} color="#4371A7" />
         </TouchableOpacity>
       </View>
 
