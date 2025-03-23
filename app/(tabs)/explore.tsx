@@ -179,7 +179,7 @@ const ExplorePage: React.FC = () => {
           <Text style={styles.noResultsText}>No more restaurants available.</Text>
         )
       ) : (
-        <Text style={styles.selectedCategoryText}>Select a category to see restaurants</Text>
+        <Text style={styles.selectCategoryText}>Select a category to see restaurants</Text>
       )}
     </View>
   );
@@ -219,6 +219,9 @@ const styles = StyleSheet.create({
   },
   selectedCategoryText: {
     color: "#fff",
+  },
+  selectCategoryText: {
+    color: "#000",
   },
   swiperContainer: {
     flex: 1,
