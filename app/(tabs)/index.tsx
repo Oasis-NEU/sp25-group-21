@@ -18,7 +18,7 @@ import {
 } from 'react-native';
 import {supabase} from '../../supabaseClient';
 
-// ✅ Define the navigation type
+
 type RootStackParamList = {
   Home: undefined;
   Restaurant: { restaurant: { id: string; name: string; image: string } };
@@ -138,7 +138,6 @@ const HomeScreen: React.FC = () => {
                         <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
                         <View style={styles.restaurantInfo}>
                           <Text style={styles.restaurantName}>{item.businessname}</Text>
-                          <Text>{item.serialid}</Text>
                         </View>
                       </View>
                     )}
