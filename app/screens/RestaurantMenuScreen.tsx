@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 
-import { RootStackParamList } from '../(tabs)/app';
+import { RootStackParamList } from '../(tabs)/App';
 
 type MenuScreenRouteProp = RouteProp<RootStackParamList, 'Menu'>;
 
