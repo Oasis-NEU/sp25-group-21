@@ -175,32 +175,33 @@ const [searchQuery, setSearchQuery] = useState('');
             )}
           </>
         }
-        data={stores}
-        keyExtractor={(category) => category.id}
-        renderItem={({ item: category }) => (
-          <FlatList
-            data={stores}
-            keyExtractor={(item) => item.id.toString()}
-             numColumns={4}  // Ensures 4 restaurants per row
-            columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 10 }} // Ensures proper spacing
-            renderItem={({ item }) => (
-              <TouchableOpacity
-              style={styles.restaurantCard}
-              onPress={() =>
-                router.push({
-                  pathname: '/menu/[id]',
-                  params: { id: item.id, name: item.businessname, image: item.image_url }
-                })
-              } 
-            >
-              <Image source={{ uri: item.image_url || 'https://via.placeholder.com/150' }} style={styles.restaurantImage} />
-              <View style={styles.restaurantInfo}>
-                <Text style={styles.restaurantName}>{item.businessname}</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        />
-
+        data={groupedRestaurants}
+        keyExtractor={(group, index) => index.toString()}
+        renderItem={({ item: group }) => (
+          <View style={styles.row}>
+            <FlatList
+              horizontal
+              data={group}
+              keyExtractor={(restaurant) => restaurant.serialid.toString()}
+              renderItem={({ item: restaurant }) => (
+                <TouchableOpacity
+                  key={restaurant.serialid}
+                  style={styles.restaurantCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: "./menu/[id]",
+                      params: { id: restaurant.serialid, name: restaurant.businessname, image: restaurant.image_url }
+                    })
+                  }
+                >
+                  <Image source={{ uri: restaurant.image_url }} style={styles.restaurantImage} />
+                  <View style={styles.restaurantInfo}>
+                    <Text style={styles.restaurantName}>{restaurant.businessname}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
         )}
       />
     </SafeAreaView>
