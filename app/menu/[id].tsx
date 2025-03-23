@@ -4,7 +4,7 @@ import {
   Text,
   View,
   SafeAreaView,
-  FlatList,
+  SectionList,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
@@ -14,6 +14,14 @@ import { supabase } from "../../supabaseClient";
 type MenuItem = {
   id: number;
   name: string;
+  category: string;
+  price: number;
+  description: string;
+};
+
+type Section = {
+  title: string;
+  data: MenuItem[];
 };
 
 export default function RestaurantMenu() {
@@ -22,7 +30,7 @@ export default function RestaurantMenu() {
   const restaurantId = (params.id as string) || "";
 
   const [serialid, setSerialid] = useState<string | null>(null);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuSections, setMenuSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState(params.image || "");
@@ -60,7 +68,7 @@ export default function RestaurantMenu() {
     }
   };
 
-  // ✅ Step 2: Fetch Entire Menu from Table
+  // ✅ Step 2: Fetch Menu from Table & Group by Category
   const fetchMenuData = async (serialid: string) => {
     try {
       if (!serialid) {
@@ -72,7 +80,7 @@ export default function RestaurantMenu() {
 
       const { data: menuData, error: menuError } = await supabase
         .from(tableName)
-        .select("itemname"); // Retrieve ONLY the names of dishes
+        .select("itemname, category, price, description");
 
       if (menuError) {
         console.error("🔴 Menu Fetch Error:", menuError);
@@ -81,20 +89,36 @@ export default function RestaurantMenu() {
 
       if (!menuData || menuData.length === 0) {
         console.warn("⚠️ No menu items found.");
-        setMenuItems([]);
+        setMenuSections([]);
         setLoading(false);
         return;
       }
 
       console.log("✅ Retrieved Menu Items:", menuData);
 
-      // Convert the menu data into an array of names
-      const formattedMenuItems: MenuItem[] = menuData.map((item: any, index: number) => ({
-        id: index + 1, // Assign a unique ID (as we don't have productid)
-        name: item.itemname,
+      // 🔥 Group menu items by category
+      const categoryMap: { [key: string]: MenuItem[] } = {};
+
+      menuData.forEach((item: any, index: number) => {
+        if (!categoryMap[item.category]) {
+          categoryMap[item.category] = [];
+        }
+        categoryMap[item.category].push({
+          id: index + 1, // Assign a unique ID
+          name: item.itemname,
+          category: item.category || "Uncategorized",
+          price: item.price,
+          description: item.description || "No description available",
+        });
+      });
+
+      // Convert categoryMap to a list of sections
+      const sections: Section[] = Object.keys(categoryMap).map((category) => ({
+        title: category,
+        data: categoryMap[category],
       }));
 
-      setMenuItems(formattedMenuItems);
+      setMenuSections(sections);
       setError(null);
       setLoading(false);
     } catch (err: any) {
@@ -165,12 +189,19 @@ export default function RestaurantMenu() {
         <Text style={styles.restaurantName}>{restaurantName}</Text>
       </View>
 
-      <FlatList
-        data={menuItems}
+      <SectionList
+        sections={menuSections}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <View style={styles.menuItem}>
             <Text style={styles.menuItemName}>{item.name}</Text>
+            <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
+            <Text style={styles.menuItemDescription}>{item.description}</Text>
+          </View>
+        )}
+        renderSectionHeader={({ section: { title } }) => (
+          <View style={styles.categoryHeader}>
+            <Text style={styles.categoryTitle}>{title}</Text>
           </View>
         )}
         ListEmptyComponent={
@@ -178,14 +209,6 @@ export default function RestaurantMenu() {
             <Text style={styles.emptyText}>
               No menu items available for {restaurantName}
             </Text>
-            <View style={styles.debugButton}>
-              <Text
-                style={styles.debugButtonText}
-                onPress={() => setRetryCount((prev) => prev + 1)}
-              >
-                Retry Load
-              </Text>
-            </View>
           </View>
         }
       />
@@ -194,101 +217,32 @@ export default function RestaurantMenu() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: 'white',
-    },
-    header: {
-        alignItems: 'center',
-        marginBottom: 20,
-        paddingVertical: 16,
-    },
-    restaurantImage: {
-        width: 150,
-        height: 150,
-        borderRadius: 75,
-    },
-    placeholderImage: {
-        backgroundColor: '#e0e0e0',
-    },
-    restaurantName: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: 10,
-        textAlign: 'center',
-    },
-    menuItem: {
-        padding: 16,
-        marginVertical: 8,
-        backgroundColor: '#f5f5f5',
-        borderRadius: 10,
-    },
-    menuItemImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 10,
-        marginBottom: 10,
-    },
-    menuItemName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 4,
-    },
-    menuItemCategory: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#6b6b6b',
-        marginBottom: 4,
-    },
-    menuItemDescription: {
-        fontSize: 14,
-        color: 'gray',
-        marginBottom: 8,
-    },
-    menuItemPrice: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#4371A7',
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        padding: 20,
-        justifyContent: 'center',
-    },
-    emptyText: {
-        fontSize: 16,
-        color: 'gray',
-        textAlign: 'center',
-    },
-    loadingText: {
-        fontSize: 16,
-        textAlign: 'center',
-        marginBottom: 10,
-        color: '#555',
-    },
-    errorText: {
-        fontSize: 18,
-        color: 'red',
-        textAlign: 'center',
-        marginBottom: 10,
-    },
-    debugText: {
-        fontSize: 14,
-        color: '#888',
-        marginTop: 5,
-        textAlign: 'center',
-    },
-    debugButton: {
-        backgroundColor: '#4371A7',
-        padding: 12,
-        borderRadius: 8,
-        marginTop: 10,
-        alignSelf: 'center',
-    },
-    debugButtonText: {
-        color: 'white',
-        fontWeight: 'bold',
-        textAlign: 'center',
-    },
+  container: { flex: 1, padding: 16, backgroundColor: "white" },
+  header: { alignItems: "center", marginBottom: 20, paddingVertical: 16 },
+  restaurantImage: { width: 150, height: 150, borderRadius: 75 },
+  placeholderImage: { backgroundColor: "#e0e0e0" },
+  restaurantName: { fontSize: 24, fontWeight: "bold", marginTop: 10, textAlign: "center" },
+  categoryHeader: { backgroundColor: "#ddd", padding: 10, marginTop: 10 },
+  categoryTitle: { fontSize: 18, fontWeight: "bold", color: "#333" },
+  menuItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: "#ccc" },
+  menuItemName: { fontSize: 16, fontWeight: "bold" },
+  menuItemPrice: { fontSize: 16, fontWeight: "bold", color: "#4371A7", textAlign: "right" },
+  menuItemDescription: { fontSize: 14, color: "gray", marginTop: 4 },
+  emptyContainer: { alignItems: "center", padding: 20 },
+  emptyText: { fontSize: 16, color: "gray", textAlign: "center" },
+  loadingText: { fontSize: 16, textAlign: "center", marginBottom: 10, color: "#555" }, 
+  errorText: { fontSize: 18, color: "red", textAlign: "center", marginBottom: 10 }, // Error message styling
+  debugButton: { 
+    backgroundColor: "#4371A7", 
+    padding: 12, 
+    borderRadius: 8, 
+    marginTop: 10, 
+    alignSelf: "center" 
+  }, // Button styling
+  debugButtonText: { 
+    color: "white", 
+    fontWeight: "bold", 
+    textAlign: "center" 
+  },
 });
+
