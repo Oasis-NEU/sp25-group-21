@@ -10,7 +10,7 @@ import {
     StyleSheet,
     FlatList,
   } from 'react-native';
-import { RootStackParamList } from '../(tabs)/app';
+import { RootStackParamList } from '../(tabs)/App';
 
 type MenuScreenRouteProp = RouteProp<RootStackParamList, 'Menu'>;
 
