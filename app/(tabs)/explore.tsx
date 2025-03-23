@@ -95,14 +95,14 @@ const ExplorePage: React.FC = () => {
                 fetchFoodItems(); 
               }}
             >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === item && styles.selectedCategoryText,
-                ]}
-              >
-                {item}
-              </Text>
+<Text
+  style={[
+    styles.categoryText,
+    selectedCategory === item && styles.selectedCategoryText, // ✅ Apply white text when selected
+  ]}
+>
+  {item}
+</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   selectedCategoryText: {
-    color: "#000",
+    color: "#fff",
   },
   swiperContainer: {
     flex: 1,
