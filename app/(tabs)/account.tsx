@@ -37,7 +37,7 @@ export default function AccountScreen() {
 
       {/* Account Options */}
       <View style={styles.menu}>
-        <Link href="./account_pages/orderHist" asChild>
+        <Link href="/account_pages/orderHist" asChild>
           <Pressable style={styles.menuItem}>
             <AntDesign name="profile" size={24} color="black" />
             <Text style={styles.menuText}>Order History</Text>
